@@ -19,11 +19,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
-          cache-dependency-path: |
-            package-lock.json
-            shared/package-lock.json
-            back-office/package-lock.json
-            front-office/package-lock.json
+          cache-dependency-path: "**/package-lock.json"
       - run: cd shared && npm ci --legacy-peer-deps
       - run: cd back-office && npm ci --legacy-peer-deps
       - run: cd front-office && npm ci --legacy-peer-deps
@@ -41,11 +37,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
-          cache-dependency-path: |
-            package-lock.json
-            shared/package-lock.json
-            back-office/package-lock.json
-            front-office/package-lock.json
+          cache-dependency-path: "**/package-lock.json"
       - run: cd shared && npm ci --legacy-peer-deps
       - run: cd back-office && npm ci --legacy-peer-deps
 
@@ -60,30 +52,22 @@ jobs:
           NODE_ENV: test
 
       - name: "AML 1044 - Ghana Card Validation Test"
-        run: |
-          cd back-office && npx jest --testPathPattern=compliance/ghana-card \
-            --forceExit
+        run: cd back-office && npx jest --testPathPattern=compliance/ghana-card --forceExit
         env:
           NODE_ENV: test
 
       - name: "DPA 843 - Data Residency Test"
-        run: |
-          cd back-office && npx jest --testPathPattern=compliance/data-residency \
-            --forceExit
+        run: cd back-office && npx jest --testPathPattern=compliance/data-residency --forceExit
         env:
           NODE_ENV: test
 
       - name: "CYB 1038 - Audit Log Hash Chain Test"
-        run: |
-          cd back-office && npx jest --testPathPattern=compliance/audit-log \
-            --forceExit
+        run: cd back-office && npx jest --testPathPattern=compliance/audit-log --forceExit
         env:
           NODE_ENV: test
 
       - name: "KYC State Machine Test"
-        run: |
-          cd back-office && npx jest --testPathPattern=compliance/kyc-state-machine \
-            --forceExit
+        run: cd back-office && npx jest --testPathPattern=compliance/kyc-state-machine --forceExit
         env:
           NODE_ENV: test
 
@@ -115,11 +99,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
-          cache-dependency-path: |
-            package-lock.json
-            shared/package-lock.json
-            back-office/package-lock.json
-            front-office/package-lock.json
+          cache-dependency-path: "**/package-lock.json"
       - run: cd back-office && npm ci --legacy-peer-deps
       - run: cd back-office && npx prisma migrate deploy
         env:
@@ -177,11 +157,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
-          cache-dependency-path: |
-            package-lock.json
-            shared/package-lock.json
-            back-office/package-lock.json
-            front-office/package-lock.json
+          cache-dependency-path: "**/package-lock.json"
       - run: cd shared && npm ci --legacy-peer-deps && npm run build
       - run: cd back-office && npm ci --legacy-peer-deps && npm run build
       - run: cd front-office && npm ci --legacy-peer-deps && npm run build
