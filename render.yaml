@@ -3,14 +3,15 @@ databases:
     databaseName: savings_loans_ghana
     user: slapp_user
     plan: free
+    region: oregon   # closest available Render region; migrate to af-south when Render adds Africa
 
 services:
-  # ── API (demo-server.js) ────────────────────────────────────────────────────
+  # ── API (demo-server.js — compliance engine) ────────────────────────────────
   - type: web
     name: ghana-savings-loans-api
     runtime: node
     rootDir: .
-    buildCommand: npm install
+    buildCommand: npm install --legacy-peer-deps
     startCommand: node demo-server.js
     plan: free
     healthCheckPath: /api/health
@@ -23,13 +24,27 @@ services:
         fromDatabase:
           name: ghana-savings-loans-db
           property: connectionString
+      - key: JWT_SECRET
+        generateValue: true          # Render generates a secure random value automatically
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: GHIPSS_MMI_KEY
+        sync: false                  # Set manually in Render dashboard (never commit)
+      - key: XDS_API_KEY
+        sync: false
+      - key: NIA_API_KEY
+        sync: false
+      - key: DNB_GHANA_API_KEY
+        sync: false
+      - key: AUDIT_LOG_RETENTION_DAYS
+        value: "2555"
 
-  # ── Front-Office (Next.js) ──────────────────────────────────────────────────
+  # ── Front-Office (Next.js PWA) ───────────────────────────────────────────────
   - type: web
     name: ghana-savings-loans-front
     runtime: node
     rootDir: front-office
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --legacy-peer-deps && npm run build
     startCommand: npm start
     plan: free
     envVars:
@@ -39,4 +54,4 @@ services:
         fromService:
           name: ghana-savings-loans-api
           type: web
-          property: url
+          envVarKey: RENDER_EXTERNAL_URL   # Render's built-in public URL env var
