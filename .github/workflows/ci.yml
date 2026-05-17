@@ -1,0 +1,175 @@
+﻿name: CI - Ghana Savings & Loans
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: cd shared && npm ci
+      - run: cd back-office && npm ci
+      - run: cd front-office && npm ci
+      - run: cd shared && npm run lint && npm run type-check
+      - run: cd back-office && npm run lint && npm run type-check
+      - run: cd front-office && npm run lint && npm run type-check
+
+  compliance-tests:
+    name: Ghana Regulatory Compliance Tests (MANDATORY)
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: cd shared && npm ci
+      - run: cd back-office && npm ci
+
+      # CRITICAL: These tests MUST pass. Failure blocks all merges.
+      - name: "DCD 2025 - Compounding Interest Prohibition Test"
+        run: |
+          cd back-office && npx jest --testPathPattern=compliance/interest-calculator \
+            --coverage \
+            --coverageThreshold='{"global":{"lines":90}}' \
+            --forceExit
+        env:
+          NODE_ENV: test
+
+      - name: "AML 1044 - Ghana Card Validation Test"
+        run: |
+          cd back-office && npx jest --testPathPattern=compliance/ghana-card \
+            --forceExit
+        env:
+          NODE_ENV: test
+
+      - name: "DPA 843 - Data Residency Test"
+        run: |
+          cd back-office && npx jest --testPathPattern=compliance/data-residency \
+            --forceExit
+        env:
+          NODE_ENV: test
+
+      - name: "CYB 1038 - Audit Log Hash Chain Test"
+        run: |
+          cd back-office && npx jest --testPathPattern=compliance/audit-log \
+            --forceExit
+        env:
+          NODE_ENV: test
+
+      - name: "KYC State Machine Test"
+        run: |
+          cd back-office && npx jest --testPathPattern=compliance/kyc-state-machine \
+            --forceExit
+        env:
+          NODE_ENV: test
+
+  unit-tests:
+    name: Unit Tests (90%+ coverage required)
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+          POSTGRES_DB: sl_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: cd back-office && npm ci
+      - run: cd back-office && npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/sl_test
+      - name: Run unit tests with coverage
+        run: cd back-office && npm run test:cov -- --forceExit
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/sl_test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test_jwt_secret_at_least_32_characters
+          JWT_REFRESH_SECRET: test_refresh_secret_at_least_32_chars
+          GHANA_DATA_REGION: gh-accra-1
+          NIA_USE_MOCK: "true"
+          GHIPSS_USE_MOCK: "true"
+          XDS_USE_MOCK: "true"
+
+  security-scan:
+    name: Security Scan (SAST + Secrets Detection)
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Dependency audit
+        run: npm audit --audit-level=high --workspaces || true
+
+      - name: Secret detection with TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+
+      - name: Semgrep SAST
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/typescript
+            p/nodejs-security-audit
+            p/owasp-top-ten
+
+  build:
+    name: Build All Packages
+    runs-on: ubuntu-latest
+    needs: [compliance-tests, unit-tests, security-scan]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: cd shared && npm ci && npm run build
+      - run: cd back-office && npm ci && npm run build
+      - run: cd front-office && npm ci && npm run build
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            back-office/dist/
+            front-office/.next/
+          retention-days: 7

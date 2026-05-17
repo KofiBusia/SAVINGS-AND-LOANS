@@ -1,0 +1,45 @@
+﻿# Multi-stage build for NestJS back-office
+# Non-root user for security (Cybersecurity Act 1038)
+
+FROM node:20-alpine AS base
+WORKDIR /app
+RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
+
+# Dependencies stage
+FROM base AS deps
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Build stage
+FROM base AS builder
+COPY package*.json ./
+RUN npm ci
+COPY --chown=nestjs:nodejs . .
+RUN npx prisma generate
+RUN npm run build
+
+# Production stage
+FROM base AS production
+ENV NODE_ENV=production
+COPY --from=deps --chown=nestjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nestjs:nodejs /app/prisma ./prisma
+COPY --chown=nestjs:nodejs package*.json ./
+
+USER nestjs
+EXPOSE 3001
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD wget -qO- http://localhost:3001/api/v1/health || exit 1
+
+CMD ["node", "dist/main"]
+
+# Development stage
+FROM base AS development
+ENV NODE_ENV=development
+COPY package*.json ./
+RUN npm ci
+COPY --chown=nestjs:nodejs . .
+RUN npx prisma generate
+USER nestjs
+EXPOSE 3001
+CMD ["npm", "run", "start:dev"]

@@ -1,0 +1,271 @@
+﻿// Ghana Savings & Loans - Prisma Database Schema
+// PostgreSQL 15 (Ghana-hosted: Rack Centre / MainOne)
+// All PII fields are encrypted at the application layer before storage
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id                        String    @id @default(uuid())
+  customerCode              String    @unique
+  ghanaCardHash             String    @unique // SHA-256(appSalt + cardNumber) - never raw card
+  ghanaCardRecord           Json      // Encrypted GhanaCardRecord
+  firstName                 String    // Encrypted at rest
+  lastName                  String    // Encrypted at rest
+  otherNames                String?
+  dateOfBirth               DateTime  // Encrypted at rest
+  gender                    String
+  nationality               String    @default("GHA")
+  phoneNumber               String    // Encrypted at rest
+  alternatePhone            String?
+  emailAddress              String?   // Encrypted at rest
+  region                    String
+  district                  String
+  town                      String
+  streetAddress             String    // Encrypted at rest
+  ghanaPostGPS              String?
+  addressVerifiedAt         DateTime?
+  addressPhotoUrl           String?
+  kycStatus                 String    @default("PENDING_GHANA_CARD")
+  kycCompletedAt            DateTime?
+  riskClass                 String    @default("MEDIUM")
+  riskScore                 Int       @default(50)
+  pepScreening              Json?
+  eddCompletedAt            DateTime?
+  cddNextReviewDate         DateTime
+  preAgreementDisplayedAt   DateTime?
+  eSignatureHash            String?
+  employmentStatus          String    @default("EMPLOYED")
+  employer                  String?
+  monthlyIncomeRangeGHS     String?
+  sourceOfFunds             String?
+  businessType              String?
+  tinNumber                 String?   // Encrypted at rest
+  consents                  Json      @default("[]")
+  dataProcessingConsentGiven Boolean  @default(false)
+  accountNumber             String    @unique @default("")
+  accountStatus             String    @default("ACTIVE")
+  activatedAt               DateTime?
+  closedAt                  DateTime?
+  branchCode                String?
+  fieldAgentId              String?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+  createdBy                 String
+
+  loans             Loan[]
+  savingsAccounts   SavingsAccount[]
+  beneficialOwners  BeneficialOwner[]
+  auditLogs         AuditLog[]        @relation("CustomerAuditLogs")
+
+  @@index([ghanaCardHash])
+  @@index([kycStatus])
+  @@index([accountStatus])
+  @@index([riskClass])
+}
+
+model BeneficialOwner {
+  id                  String   @id @default(uuid())
+  customerId          String
+  ownerName           String
+  ownerGhanaCardHash  String
+  ownershipPercentage Float
+  relationship        String
+  verifiedAt          DateTime
+
+  customer  Customer @relation(fields: [customerId], references: [id])
+}
+
+model LoanProduct {
+  id                        String  @id @default(uuid())
+  name                      String
+  targetSegment             String
+  minAmount                 Float
+  maxAmount                 Float
+  minTermMonths             Int
+  maxTermMonths             Int
+  annualInterestRatePercent Float
+  interestType              String  @default("SIMPLE") // MUST always be SIMPLE
+  processingFeePercent      Float   @default(0)
+  penaltyRatePercent        Float
+  requiresCollateral        Boolean @default(false)
+  requiresGuarantor         Boolean @default(false)
+  isActive                  Boolean @default(true)
+  createdAt                 DateTime @default(now())
+
+  loans Loan[]
+}
+
+model Loan {
+  id                        String    @id @default(uuid())
+  loanNumber                String    @unique
+  customerId                String
+  productId                 String
+  principal                 Float
+  annualInterestRatePercent Float
+  termMonths                Int
+  totalInterest             Float
+  totalRepayment            Float
+  monthlyInstalment         Float
+  interestType              String    @default("SIMPLE") // ENFORCED: NEVER compound
+  disbursementRecord        Json?
+  disbursedAt               DateTime?
+  totalPaid                 Float     @default(0)
+  outstandingBalance        Float
+  nextPaymentDate           DateTime?
+  nextPaymentAmount         Float?
+  npaClass                  String    @default("CURRENT")
+  daysOverdue               Int       @default(0)
+  preAgreementDisplayedAt   DateTime?
+  preAgreementAcceptedAt    DateTime?
+  eSignatureHash            String?
+  coolingOffExpiresAt       DateTime?
+  status                    String    @default("DRAFT")
+  purpose                   String
+  rejectionReason           String?
+  approvedBy                String?
+  approvedAt                DateTime?
+  isRestructured            Boolean   @default(false)
+  restructuringHistory      Json      @default("[]")
+  lastBureauSubmissionAt    DateTime?
+  bureauReferenceId         String?
+  branchCode                String?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+  createdBy                 String
+
+  customer          Customer            @relation(fields: [customerId], references: [id])
+  product           LoanProduct         @relation(fields: [productId], references: [id])
+  repaymentSchedule LoanRepaymentEntry[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([npaClass])
+}
+
+model LoanRepaymentEntry {
+  id                 String    @id @default(uuid())
+  loanId             String
+  instalmentNumber   Int
+  dueDate            DateTime
+  principalComponent Float
+  interestComponent  Float
+  totalDue           Float
+  paidAmount         Float     @default(0)
+  paidAt             DateTime?
+  outstandingBalance Float
+  status             String    @default("UPCOMING")
+
+  loan Loan @relation(fields: [loanId], references: [id])
+
+  @@index([loanId])
+  @@index([dueDate])
+}
+
+model SavingsAccount {
+  id              String   @id @default(uuid())
+  accountNumber   String   @unique
+  customerId      String
+  productType     String
+  balance         Float    @default(0)
+  interestAccrued Float    @default(0)
+  lockInEndDate   DateTime?
+  minimumBalance  Float    @default(0)
+  status          String   @default("ACTIVE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  customer     Customer      @relation(fields: [customerId], references: [id])
+  transactions Transaction[]
+
+  @@index([customerId])
+}
+
+model Transaction {
+  id               String   @id @default(uuid())
+  reference        String   @unique
+  savingsAccountId String?
+  loanId           String?
+  type             String   // DEPOSIT, WITHDRAWAL, LOAN_DISBURSEMENT, LOAN_REPAYMENT, FEE, INTEREST
+  amount           Float
+  balanceAfter     Float
+  channel          String   // CASH, GHIPSS_MTN, GHIPSS_TELECEL, GHIPSS_AIRTELTIGO, BANK_TRANSFER
+  ghipssReference  String?
+  status           String   @default("COMPLETED")
+  narration        String?
+  createdAt        DateTime @default(now())
+  createdBy        String
+
+  savingsAccount SavingsAccount? @relation(fields: [savingsAccountId], references: [id])
+
+  @@index([savingsAccountId])
+  @@index([loanId])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id             String @id @default(uuid())
+  sequenceNumber Int    @unique  // Monotonically increasing
+  hash           String @unique  // SHA-256 hash chain
+  prevHash       String          // Previous entry hash
+  action         String
+  timestamp      String          // ISO 8601 UTC
+  userId         String
+  customerId     String?
+  entityType     String?
+  entityId       String?
+  metadata       Json   @default("{}")
+  ipAddress      String?
+  deviceId       String?
+  branchCode     String?
+
+  customer Customer? @relation("CustomerAuditLogs", fields: [customerId], references: [id])
+
+  @@index([customerId])
+  @@index([action])
+  @@index([timestamp])
+  @@index([sequenceNumber])
+}
+
+model RegulatoryReport {
+  id                  String    @id @default(uuid())
+  type                String    // STR, CTR, BOG_MONTHLY, BOG_QUARTERLY, BUREAU_DAILY, DSAR
+  status              String    @default("PENDING")
+  externalReferenceId String?
+  payload             Json
+  xmlContent          String?
+  errorMessage        String?
+  submittedAt         DateTime?
+  reportPeriodStart   DateTime?
+  reportPeriodEnd     DateTime?
+  createdAt           DateTime  @default(now())
+
+  @@index([type, status])
+  @@index([createdAt])
+}
+
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String
+  roles            String[]
+  mfaSecret        String?   // TOTP secret (encrypted)
+  mfaEnabled       Boolean   @default(false)
+  mfaBackupCodes   String[]
+  deviceBindings   Json      @default("[]")
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  branchCode       String?
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([email])
+}

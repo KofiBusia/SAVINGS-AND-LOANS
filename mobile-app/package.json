@@ -1,0 +1,62 @@
+﻿{
+  "name": "@savings-loans/mobile-app",
+  "version": "1.0.0",
+  "description": "Ghana Savings & Loans mobile app - React Native with offline-first architecture",
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "build:android": "expo build:android --type apk",
+    "lint": "eslint src --ext .ts,.tsx",
+    "type-check": "tsc --noEmit",
+    "test": "jest"
+  },
+  "dependencies": {
+    "expo": "~50.0.6",
+    "react": "18.2.0",
+    "react-native": "0.73.4",
+    "@react-navigation/native": "^6.1.10",
+    "@react-navigation/stack": "^6.3.20",
+    "@react-navigation/bottom-tabs": "^6.5.11",
+    "@reduxjs/toolkit": "^2.1.0",
+    "react-redux": "^9.1.0",
+    "expo-camera": "~14.0.4",
+    "expo-face-detector": "~12.7.2",
+    "expo-local-authentication": "~13.8.0",
+    "expo-location": "~16.5.3",
+    "expo-image-picker": "~14.7.1",
+    "expo-document-picker": "~11.10.1",
+    "expo-file-system": "~16.0.6",
+    "expo-secure-store": "~12.8.1",
+    "expo-notifications": "~0.27.6",
+    "i18next": "^23.8.2",
+    "react-i18next": "^14.0.5",
+    "@nozbe/watermelondb": "^0.27.1",
+    "@nozbe/with-observables": "^1.6.0",
+    "react-native-gesture-handler": "~2.15.0",
+    "react-native-reanimated": "~3.6.2",
+    "react-native-safe-area-context": "4.8.2",
+    "react-native-screens": "~3.29.0",
+    "react-native-vector-icons": "^10.0.3",
+    "axios": "^1.6.5",
+    "date-fns": "^3.3.1",
+    "zod": "^3.22.4",
+    "react-native-signature-canvas": "^4.7.2",
+    "react-native-qrcode-svg": "^6.3.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.9",
+    "@types/react": "~18.2.55",
+    "@types/react-native": "^0.73.0",
+    "typescript": "^5.3.3",
+    "jest": "^29.7.0",
+    "jest-expo": "~50.0.1",
+    "@testing-library/react-native": "^12.4.3",
+    "detox": "^20.13.5"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "setupFilesAfterFramework": ["@testing-library/jest-native/extend-expect"]
+  }
+}

@@ -1,0 +1,50 @@
+﻿name: CD - Deploy to Staging
+
+on:
+  push:
+    branches: [main]
+  workflow_run:
+    workflows: ["CI - Ghana Savings & Loans"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging (Ghana)
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == '"'"'success'"'"' || github.event_name == '"'"'push'"'"' }}
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure kubectl
+        uses: azure/k8s-set-context@v3
+        with:
+          kubeconfig: ${{ secrets.KUBE_CONFIG_STAGING }}
+
+      - name: Build and push images
+        run: |
+          docker build -f infrastructure/docker/Dockerfile.back-office -t ${{ secrets.REGISTRY }}/back-office:${{ github.sha }} ./back-office
+          docker build -f infrastructure/docker/Dockerfile.front-office -t ${{ secrets.REGISTRY }}/front-office:${{ github.sha }} ./front-office
+          docker push ${{ secrets.REGISTRY }}/back-office:${{ github.sha }}
+          docker push ${{ secrets.REGISTRY }}/front-office:${{ github.sha }}
+
+      - name: Deploy to staging namespace
+        run: |
+          kubectl set image deployment/back-office back-office=${{ secrets.REGISTRY }}/back-office:${{ github.sha }} -n savings-loans-staging
+          kubectl set image deployment/front-office front-office=${{ secrets.REGISTRY }}/front-office:${{ github.sha }} -n savings-loans-staging
+          kubectl rollout status deployment/back-office -n savings-loans-staging --timeout=5m
+          kubectl rollout status deployment/front-office -n savings-loans-staging --timeout=5m
+
+      - name: Run smoke tests
+        run: |
+          sleep 30
+          curl -f https://staging-api.savingsloans.com.gh/api/v1/health || exit 1
+
+      - name: Notify Slack
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: "Staging deploy ${{ job.status }}: ${{ github.sha }}"
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}

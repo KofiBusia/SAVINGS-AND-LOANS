@@ -1,0 +1,29 @@
+﻿apiVersion: v1
+kind: Namespace
+metadata:
+  name: savings-loans-prod
+  labels:
+    environment: production
+    data-classification: pii-sensitive
+    compliance: "BoG-regulated"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: savings-loans-staging
+  labels:
+    environment: staging
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    purpose: observability
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vault
+  labels:
+    purpose: secrets-management

@@ -1,0 +1,46 @@
+﻿{
+  "name": "@savings-loans/front-office",
+  "version": "1.0.0",
+  "description": "Ghana Savings & Loans front-office PWA for field officers",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "next": "^14.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "swr": "^2.2.4",
+    "react-hook-form": "^7.50.1",
+    "zod": "^3.22.4",
+    "@hookform/resolvers": "^3.3.4",
+    "leaflet": "^1.9.4",
+    "react-leaflet": "^4.2.1",
+    "axios": "^1.6.5",
+    "date-fns": "^3.3.1",
+    "recharts": "^2.10.3",
+    "@tanstack/react-table": "^8.11.6",
+    "idb": "^8.0.0",
+    "workbox-window": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
+    "@types/leaflet": "^1.9.8",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "@testing-library/react": "^14.2.1",
+    "@testing-library/jest-dom": "^6.4.2",
+    "next-pwa": "^5.6.0"
+  }
+}

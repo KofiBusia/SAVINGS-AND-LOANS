@@ -1,0 +1,170 @@
+﻿version: "3.9"
+
+# Ghana Savings & Loans - Local Development Stack
+# All data remains in local environment for compliance testing
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: sl_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: savings_loans_ghana
+      POSTGRES_USER: slapp_user
+      POSTGRES_PASSWORD: dev_password_change_in_prod
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./back-office/src/database/migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slapp_user -d savings_loans_ghana"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: sl_redis
+    restart: unless-stopped
+    command: redis-server --requirepass dev_redis_password
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  back-office:
+    build:
+      context: ./back-office
+      dockerfile: ../infrastructure/docker/Dockerfile.back-office
+      target: development
+    container_name: sl_back_office
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://slapp_user:dev_password_change_in_prod@postgres:5432/savings_loans_ghana
+      REDIS_URL: redis://:dev_redis_password@redis:6379
+      JWT_SECRET: dev_jwt_secret_change_in_prod_minimum_32_chars
+      JWT_REFRESH_SECRET: dev_refresh_secret_change_in_prod_min_32c
+      NIA_USE_MOCK: "true"
+      GHIPSS_USE_MOCK: "true"
+      XDS_USE_MOCK: "true"
+      DNB_USE_MOCK: "true"
+      MYCREDIT_USE_MOCK: "true"
+      GHANA_DATA_REGION: gh-accra-1
+      PII_EXPORT_BLOCK: "true"
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./back-office/src:/app/src
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  front-office:
+    build:
+      context: ./front-office
+      dockerfile: ../infrastructure/docker/Dockerfile.front-office
+      target: development
+    container_name: sl_front_office
+    restart: unless-stopped
+    depends_on:
+      - back-office
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NEXT_PUBLIC_APP_NAME: "Ghana Savings & Loans"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./front-office/src:/app/src
+      - /app/node_modules
+
+  # Mock GhIPSS server for local integration testing
+  ghipss-mock:
+    image: node:20-alpine
+    container_name: sl_ghipss_mock
+    working_dir: /mock
+    command: sh -c "npm install express && node server.js"
+    volumes:
+      - ./infrastructure/mocks/ghipss:/mock
+    ports:
+      - "9001:9001"
+    environment:
+      MOCK_PORT: "9001"
+      MOCK_SUCCESS_RATE: "0.85"
+
+  # Mock NIA verification server
+  nia-mock:
+    image: node:20-alpine
+    container_name: sl_nia_mock
+    working_dir: /mock
+    command: sh -c "npm install express && node server.js"
+    volumes:
+      - ./infrastructure/mocks/nia:/mock
+    ports:
+      - "9002:9002"
+
+  # Prometheus monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: sl_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+
+  # Grafana dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: sl_grafana
+    ports:
+      - "3003:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: dev_grafana_admin
+      GF_SERVER_ROOT_URL: http://localhost:3003
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infrastructure/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./infrastructure/monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+
+  # MinIO - S3-compatible storage (Ghana-local for KYC documents)
+  minio:
+    image: minio/minio:latest
+    container_name: sl_minio
+    command: server /data --console-address ":9091"
+    environment:
+      MINIO_ROOT_USER: minio_admin
+      MINIO_ROOT_PASSWORD: dev_minio_password_change
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9091:9091"
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+  minio_data:

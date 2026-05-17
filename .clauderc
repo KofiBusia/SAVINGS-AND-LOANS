@@ -1,0 +1,11 @@
+﻿{
+  "project": "Ghana Savings & Loans Platform",
+  "context": "Production fintech platform regulated by Bank of Ghana. All code must comply with Digital Credit Directive 2025, AML Act 1044, Data Protection Act 843, Credit Reporting L.I. 2394, and Cybersecurity Act 1038.",
+  "critical_rules": [
+    "NEVER implement compounding interest - throw regulatory error",
+    "ALWAYS validate Ghana Card using NIA format GHA-XXXXXXXX-X",
+    "NEVER export PII outside Ghana data regions",
+    "ALWAYS require MFA for write operations",
+    "ALWAYS create SHA-256 hash-chained audit log entries"
+  ]
+}

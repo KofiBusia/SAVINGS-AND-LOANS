@@ -1,0 +1,71 @@
+﻿# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+.expo/
+android/app/build/
+ios/build/
+
+# Environment files - NEVER commit secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Terraform state
+infrastructure/terraform/.terraform/
+infrastructure/terraform/*.tfstate
+infrastructure/terraform/*.tfstate.backup
+infrastructure/terraform/*.tfplan
+infrastructure/terraform/.terraform.lock.hcl
+
+# Database
+*.sqlite
+*.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Keys and certificates - NEVER commit
+*.pem
+*.key
+*.cert
+*.p12
+*.jks
+*.keystore
+google-services.json
+
+# Kubernetes secrets
+infrastructure/k8s/secrets-values.yml
+
+# Reports with PII
+reports/audit-exports/
+
+# Mobile
+.gradle/
+local.properties
+
+# Vault tokens
+.vault-token

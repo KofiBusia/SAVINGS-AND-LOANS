@@ -1,0 +1,44 @@
+﻿name: Weekly Security Scan
+
+on:
+  schedule:
+    - cron: "0 2 * * 1"  # Every Monday 2am UTC
+  workflow_dispatch:
+
+jobs:
+  security:
+    name: Full Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Dependency vulnerability scan
+        run: |
+          cd back-office && npm audit --json > ../audit-back-office.json || true
+          cd front-office && npm audit --json > ../audit-front-office.json || true
+
+      - name: Container image scan with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-results.sarif"
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: "trivy-results.sarif"
+
+      - name: Secret scan - full history
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ""
+          head: HEAD
