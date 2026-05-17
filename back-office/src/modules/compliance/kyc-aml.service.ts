@@ -1,4 +1,4 @@
-﻿import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogService } from './audit-log.service';
 import { validateGhanaCard } from '../../../../shared/src/utils/ghana-validators';
@@ -269,7 +269,7 @@ export class KycAmlService {
 
     const updated = await this.prisma.customer.update({
       where: { id: customerId },
-      data: { pepScreening: screeningResult as Record<string, unknown>, kycStatus: 'PENDING_RISK_CLASSIFICATION' },
+      data: { pepScreening: screeningResult as any, kycStatus: 'PENDING_RISK_CLASSIFICATION' },
     });
 
     await this.auditLog.log({

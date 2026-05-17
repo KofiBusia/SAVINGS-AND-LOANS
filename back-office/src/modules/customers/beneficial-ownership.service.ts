@@ -15,8 +15,8 @@ export interface UboRecord {
   fullName: string;
   dateOfBirth: Date;
   nationalityCountry: string;  // ISO-3166-1 alpha-2
-  ghanaCardNumber?: string;    // For Ghanaian UBOs — stored as hash
-  passportNumber?: string;     // For foreign UBOs — stored as hash
+  ghanaCardNumber?: string;    // For Ghanaian UBOs â€” stored as hash
+  passportNumber?: string;     // For foreign UBOs â€” stored as hash
   ownershipPercentage: number;
   controlType: 'DIRECT' | 'INDIRECT' | 'NOMINEE' | 'VOTING_RIGHTS';
   addressCountry: string;
@@ -72,14 +72,14 @@ export class BeneficialOwnershipService {
     private readonly configService: ConfigService,
   ) {}
 
-  // ─── Register UBO ─────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Register UBO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async registerUbo(
     dto: UboRecord,
     registeredByUserId: string,
   ): Promise<{ uboId: string }> {
     const customer = await this.prisma.customer.findUnique({
-      where: { id: dto.customerId, deletedAt: null },
+      where: { id: dto.customerId},
       include: { beneficialOwners: { where: { isActive: true } } },
     });
 
@@ -94,7 +94,7 @@ export class BeneficialOwnershipService {
     if (dto.ownershipPercentage < this.UBO_THRESHOLD_PERCENT) {
       throw new BadRequestException(
         `UBO ownership percentage (${dto.ownershipPercentage}%) is below the mandatory disclosure threshold of ${this.UBO_THRESHOLD_PERCENT}%. ` +
-        `Per AML Act 1044, only persons owning or controlling ≥25% must be declared as UBOs.`,
+        `Per AML Act 1044, only persons owning or controlling â‰¥25% must be declared as UBOs.`,
       );
     }
 
@@ -178,7 +178,7 @@ export class BeneficialOwnershipService {
     return { uboId: ubo.id };
   }
 
-  // ─── Verify UBO ───────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Verify UBO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async verifyUbo(
     uboId: string,
@@ -232,20 +232,20 @@ export class BeneficialOwnershipService {
       },
     });
 
-    // Check if all UBOs are now verified — update customer record
+    // Check if all UBOs are now verified â€” update customer record
     await this.checkAndUpdateUboCompletionStatus(ubo.customerId, officerUserId);
 
     return result;
   }
 
-  // ─── Get Beneficial Ownership Report ─────────────────────────────────────────
+  // â”€â”€â”€ Get Beneficial Ownership Report â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getBeneficialOwnershipReport(
     customerId: string,
     requestingUserId: string,
   ): Promise<BeneficialOwnershipReport> {
     const customer = await this.prisma.customer.findUnique({
-      where: { id: customerId, deletedAt: null },
+      where: { id: customerId},
       include: {
         beneficialOwners: {
           where: { isActive: true },
@@ -318,14 +318,14 @@ export class BeneficialOwnershipService {
     };
   }
 
-  // ─── Detect 25% Threshold Violations ─────────────────────────────────────────
+  // â”€â”€â”€ Detect 25% Threshold Violations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async detectThresholdViolations(customerId: string): Promise<{
     hasViolations: boolean;
     violations: string[];
   }> {
     const customer = await this.prisma.customer.findUnique({
-      where: { id: customerId, deletedAt: null },
+      where: { id: customerId},
       include: { beneficialOwners: { where: { isActive: true } } },
     });
 
@@ -343,13 +343,13 @@ export class BeneficialOwnershipService {
     for (const ubo of ubos) {
       if (ubo.ownershipPercentage < this.UBO_THRESHOLD_PERCENT) {
         violations.push(
-          `UBO ${ubo.fullName} ownership (${ubo.ownershipPercentage}%) is below 25% threshold — should not be declared as UBO`,
+          `UBO ${ubo.fullName} ownership (${ubo.ownershipPercentage}%) is below 25% threshold â€” should not be declared as UBO`,
         );
       }
 
       if (ubo.verificationStatus === 'PENDING') {
         violations.push(
-          `UBO ${ubo.fullName} has not been verified — identity verification required per AML Act 1044`,
+          `UBO ${ubo.fullName} has not been verified â€” identity verification required per AML Act 1044`,
         );
       }
     }
@@ -357,7 +357,7 @@ export class BeneficialOwnershipService {
     // For business accounts: check if beneficial owners exist
     if (customer.type === 'BUSINESS' && ubos.length === 0) {
       violations.push(
-        'Business customer has no declared UBOs. Per AML Act 1044, all persons owning or controlling ≥25% must be declared.',
+        'Business customer has no declared UBOs. Per AML Act 1044, all persons owning or controlling â‰¥25% must be declared.',
       );
     }
 
@@ -367,7 +367,7 @@ export class BeneficialOwnershipService {
     };
   }
 
-  // ─── Remove UBO ───────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Remove UBO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async removeUbo(
     uboId: string,
@@ -382,7 +382,7 @@ export class BeneficialOwnershipService {
       throw new NotFoundException(`UBO ${uboId} not found`);
     }
 
-    // Soft delete — never hard delete for compliance
+    // Soft delete â€” never hard delete for compliance
     await this.prisma.beneficialOwner.update({
       where: { id: uboId },
       data: {
@@ -409,7 +409,7 @@ export class BeneficialOwnershipService {
     this.logger.warn(`UBO ${uboId} (${ubo.fullName}) removed from customer ${ubo.customerId}. Reason: ${reason}`);
   }
 
-  // ─── Private Helpers ──────────────────────────────────────────────────────────
+  // â”€â”€â”€ Private Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   private validateOwnershipPercentage(percentage: number): void {
     if (percentage < 0 || percentage > 100) {

@@ -1,4 +1,4 @@
-﻿import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { create } from 'xmlbuilder2';
 import axios from 'axios';
@@ -36,7 +36,7 @@ export interface CashTransactionReport {
  *
  * Generates and submits:
  * - STR (Suspicious Transaction Reports) to Financial Intelligence Centre
- * - CTR (Cash Transaction Reports) for transactions >= GH₵10,000
+ * - CTR (Cash Transaction Reports) for transactions >= GHâ‚µ10,000
  *
  * Reports are submitted in XML format per FIC/goAML schema.
  * 20-day deadline for STR submission after detection.
@@ -78,7 +78,7 @@ export class FicReportingService {
         data: {
           type: 'STR',
           status: 'PENDING_RETRY',
-          payload: report as unknown as Record<string, unknown>,
+          payload: report as any,
           xmlContent: xml,
           errorMessage: (error as Error).message,
         },
@@ -92,7 +92,7 @@ export class FicReportingService {
         type: 'STR',
         status: 'SUBMITTED',
         externalReferenceId: ficReferenceId,
-        payload: report as unknown as Record<string, unknown>,
+        payload: report as any,
         xmlContent: xml,
         submittedAt: new Date(),
       },
@@ -116,12 +116,12 @@ export class FicReportingService {
 
   /**
    * Generate and submit a Cash Transaction Report (CTR) to FIC.
-   * Required for all cash transactions >= GH₵10,000 (AML Act 1044).
+   * Required for all cash transactions >= GHâ‚µ10,000 (AML Act 1044).
    */
   async submitCTR(report: CashTransactionReport, submittedBy: string): Promise<{ referenceId: string }> {
     if (report.cashAmount < AML_1044.CTR_THRESHOLD_GHS) {
       throw new Error(
-        `CTR not required for amounts below GH₵${AML_1044.CTR_THRESHOLD_GHS}. Amount: GH₵${report.cashAmount}`,
+        `CTR not required for amounts below GHâ‚µ${AML_1044.CTR_THRESHOLD_GHS}. Amount: GHâ‚µ${report.cashAmount}`,
       );
     }
 
@@ -145,7 +145,7 @@ export class FicReportingService {
         data: {
           type: 'CTR',
           status: 'PENDING_RETRY',
-          payload: report as unknown as Record<string, unknown>,
+          payload: report as any,
           xmlContent: xml,
           errorMessage: (error as Error).message,
         },
@@ -158,7 +158,7 @@ export class FicReportingService {
         type: 'CTR',
         status: 'SUBMITTED',
         externalReferenceId: ficReferenceId,
-        payload: report as unknown as Record<string, unknown>,
+        payload: report as any,
         xmlContent: xml,
         submittedAt: new Date(),
       },

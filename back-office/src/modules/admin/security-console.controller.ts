@@ -10,19 +10,20 @@
  *   - System health overview
  *
  * Compliance:
- *   - Cybersecurity Act 2020 (Act 1038) §37-40 — incident reporting
- *   - BoG Cybersecurity Directive 2022 §6.3 — security monitoring
- *   - Data Protection Act 2012 (Act 843) §30 — data breach notification
+ *   - Cybersecurity Act 2020 (Act 1038) Â§37-40 â€” incident reporting
+ *   - BoG Cybersecurity Directive 2022 Â§6.3 â€” security monitoring
+ *   - Data Protection Act 2012 (Act 843) Â§30 â€” data breach notification
  *   - GDPR-equivalent obligations under Act 843
  *
  * Critical incidents are automatically reported to BoG within 24 hours
- * and to data subjects within 72 hours where PII is involved (Act 843 §30).
+ * and to data subjects within 72 hours where PII is involved (Act 843 Â§30).
  */
 
 import {
   Controller, Get, Post, Delete, Body, Param, Query,
   UseGuards, HttpCode, HttpStatus, Logger,
 } from '@nestjs/common';
+import { Put } from '@nestjs/common';
 import {
   ApiTags, ApiOperation, ApiBearerAuth, ApiParam,
   ApiQuery, ApiResponse,
@@ -35,7 +36,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { Audit } from '../../common/decorators/audit.decorator';
 import { MfaRequired } from '../../common/decorators/mfa-required.decorator';
 
-// ─── Enums ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Enums â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export enum SecurityEventType {
   FAILED_LOGIN = 'FAILED_LOGIN',
@@ -69,7 +70,7 @@ export enum AlertStatus {
   ESCALATED_TO_BOG = 'ESCALATED_TO_BOG',
 }
 
-// ─── DTOs ─────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ DTOs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export class SecurityEventQueryDto {
   @IsOptional()
@@ -143,7 +144,7 @@ export class CreateSecurityAlertDto {
   details?: Record<string, unknown>;
 }
 
-// ─── Interfaces ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Interfaces â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface SecurityEvent {
   id: string;
@@ -178,7 +179,7 @@ interface ComponentHealth {
   lastCheckedAt: string;
 }
 
-// ─── In-memory event store ─────────────────────────────────────────────────────
+// â”€â”€â”€ In-memory event store â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const securityEvents: SecurityEvent[] = generateMockSecurityEvents();
 
@@ -195,7 +196,7 @@ function generateMockSecurityEvents(): SecurityEvent[] {
       occurredAt: new Date(Date.now() - 3600000).toISOString(),
       resolvedAt: new Date(Date.now() - 3000000).toISOString(),
       resolvedBy: 'admin-001',
-      resolution: 'User identity confirmed via phone call — account unlocked',
+      resolution: 'User identity confirmed via phone call â€” account unlocked',
       requiresBogReport: false,
       requiresCustomerNotification: true,
     },
@@ -240,7 +241,7 @@ function generateMockSecurityEvents(): SecurityEvent[] {
   return events;
 }
 
-// ─── Controller ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Controller â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @ApiTags('Security Console')
 @ApiBearerAuth()
@@ -250,7 +251,7 @@ export class SecurityConsoleController {
   private readonly logger = new Logger(SecurityConsoleController.name);
 
   /**
-   * Security dashboard summary — top-level health and alert counts.
+   * Security dashboard summary â€” top-level health and alert counts.
    */
   @Get('dashboard')
   @Roles('ADMIN', 'COMPLIANCE_OFFICER', 'AUDITOR')
@@ -350,7 +351,7 @@ export class SecurityConsoleController {
 
     if (event.severity === SecuritySeverity.CRITICAL) {
       this.logger.error(
-        `CRITICAL security event [id=${event.id}, type=${event.type}] — immediate escalation required`,
+        `CRITICAL security event [id=${event.id}, type=${event.type}] â€” immediate escalation required`,
       );
     }
 
@@ -407,7 +408,7 @@ export class SecurityConsoleController {
       events,
       count: events.length,
       periodHours: hoursNum,
-      riskAssessment: events.length > 10 ? 'HIGH — possible brute force' : 'NORMAL',
+      riskAssessment: events.length > 10 ? 'HIGH â€” possible brute force' : 'NORMAL',
     };
   }
 
@@ -448,8 +449,8 @@ export class SecurityConsoleController {
       violations,
       totalCount: violations.length,
       unresolvedCount: unresolved.length,
-      complianceNote: 'Data residency violations must be reported to ODPC within 72 hours (Act 843 §30)',
-      legalRef: 'Data Protection Act 2012 (Act 843) §30',
+      complianceNote: 'Data residency violations must be reported to ODPC within 72 hours (Act 843 Â§30)',
+      legalRef: 'Data Protection Act 2012 (Act 843) Â§30',
     };
   }
 
@@ -467,7 +468,7 @@ export class SecurityConsoleController {
     return {
       events,
       count: events.length,
-      note: 'All break-glass events are auto-reported to Board Risk Committee per BoG Corporate Governance Directive 2022 §7',
+      note: 'All break-glass events are auto-reported to Board Risk Committee per BoG Corporate Governance Directive 2022 Â§7',
     };
   }
 
@@ -507,7 +508,7 @@ export class SecurityConsoleController {
         name: 'NIA Verification API',
         status: 'DEGRADED',
         latencyMs: 4500,
-        message: 'High latency — using cached responses',
+        message: 'High latency â€” using cached responses',
         lastCheckedAt: new Date().toISOString(),
       },
       {
@@ -565,7 +566,7 @@ export class SecurityConsoleController {
 
   /**
    * Export security report for BoG submission.
-   * Required monthly per BoG Cybersecurity Directive 2022 §8.
+   * Required monthly per BoG Cybersecurity Directive 2022 Â§8.
    */
   @Post('reports/generate-bog-security-report')
   @Roles('ADMIN', 'COMPLIANCE_OFFICER')
@@ -596,7 +597,7 @@ export class SecurityConsoleController {
       systemAvailability: 99.8,
       securityControlsEffective: true,
       cyberSecurityDirectiveCompliant: true,
-      legalRef: 'BoG Cybersecurity Directive 2022 §8',
+      legalRef: 'BoG Cybersecurity Directive 2022 Â§8',
       nextReportDue: this.getNextMonthFirstDay(body.year, parseInt(body.month, 10)),
     };
 
@@ -604,7 +605,7 @@ export class SecurityConsoleController {
     return report;
   }
 
-  // ─── Private Helpers ──────────────────────────────────────────────────────────
+  // â”€â”€â”€ Private Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   private requiresBogReport(type: SecurityEventType, severity: SecuritySeverity): boolean {
     const bogReportableTypes = [

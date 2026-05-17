@@ -1,4 +1,4 @@
-﻿// Ghana Savings & Loans - Prisma Database Schema
+// Ghana Savings & Loans - Prisma Database Schema
 // PostgreSQL 15 (Ghana-hosted: Rack Centre / MainOne)
 // All PII fields are encrypted at the application layer before storage
 

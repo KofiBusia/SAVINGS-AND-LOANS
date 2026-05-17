@@ -1,0 +1,19 @@
+{
+  "name": "savings-and-loans",
+  "version": "1.0.0",
+  "description": "> Production-ready savings and loan management system for Ghana, serving SMEs and microcredit clients. Built for full compliance with Bank of Ghana (BoG) regulations.",
+  "main": ".eslintrc.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "start": "node demo-server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "pg": "^8.20.0"
+  }
+}

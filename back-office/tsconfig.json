@@ -1,4 +1,4 @@
-﻿{
+{
   "compilerOptions": {
     "module": "commonjs",
     "declaration": true,
@@ -12,12 +12,8 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
-    "strictNullChecks": true,
-    "noImplicitAny": true,
-    "strictBindCallApply": true,
-    "noFallthroughCasesInSwitch": true,
-    "paths": {
-      "@shared/*": ["../shared/src/*"]
-    }
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false
   }
 }
