@@ -19,6 +19,11 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            shared/package-lock.json
+            back-office/package-lock.json
+            front-office/package-lock.json
       - run: cd shared && npm ci
       - run: cd back-office && npm ci
       - run: cd front-office && npm ci
@@ -36,6 +41,11 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            shared/package-lock.json
+            back-office/package-lock.json
+            front-office/package-lock.json
       - run: cd shared && npm ci
       - run: cd back-office && npm ci
 
@@ -105,6 +115,11 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            shared/package-lock.json
+            back-office/package-lock.json
+            front-office/package-lock.json
       - run: cd back-office && npm ci
       - run: cd back-office && npx prisma migrate deploy
         env:
@@ -162,6 +177,11 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            shared/package-lock.json
+            back-office/package-lock.json
+            front-office/package-lock.json
       - run: cd shared && npm ci && npm run build
       - run: cd back-office && npm ci && npm run build
       - run: cd front-office && npm ci && npm run build
