@@ -86,7 +86,7 @@ export function encryptPII(plaintext: string, masterKey: string): EncryptedData 
   const iv = randomBytes(IV_LENGTH);
   const key = deriveKey(masterKey, salt);
 
-  const cipher = createCipheriv(ALGORITHM, key, iv);
+  const cipher = createCipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
   const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
   const authTag = cipher.getAuthTag();
 

@@ -90,7 +90,7 @@ export const CYBERSECURITY_1038 = {
   MAX_FAILED_LOGINS: 5,
   /** Account lockout duration (minutes) */
   LOCKOUT_DURATION_MINUTES: 30,
-  MFA_ISSUER: 'Ghana Savings \& Loans',
+  MFA_ISSUER: 'Ghana Savings & Loans',
   MFA_TOTP_WINDOW: 1,
   BACKUP_CODE_COUNT: 10,
 } as const;
