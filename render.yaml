@@ -23,8 +23,6 @@ services:
         fromDatabase:
           name: ghana-savings-loans-db
           property: connectionString
-      - key: PORT
-        value: 10000
 
   # ── Front-Office (Next.js) ──────────────────────────────────────────────────
   - type: web
@@ -41,7 +39,4 @@ services:
         fromService:
           name: ghana-savings-loans-api
           type: web
-          property: host
-          envVarKey: NEXT_PUBLIC_API_URL
-      - key: PORT
-        value: 10000
+          property: url
