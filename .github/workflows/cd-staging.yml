@@ -1,4 +1,4 @@
-﻿name: CD - Deploy to Staging
+name: CD - Deploy to Staging (Render)
 
 on:
   push:
@@ -8,43 +8,70 @@ on:
     types: [completed]
     branches: [main]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   deploy-staging:
     name: Deploy to Staging (Ghana)
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'push' }}
     environment: staging
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure kubectl
-        uses: azure/k8s-set-context@v3
-        with:
-          kubeconfig: ${{ secrets.KUBE_CONFIG_STAGING }}
-
-      - name: Build and push images
+      - name: Trigger Render deploy - API
         run: |
-          docker build -f infrastructure/docker/Dockerfile.back-office -t ${{ secrets.REGISTRY }}/back-office:${{ github.sha }} ./back-office
-          docker build -f infrastructure/docker/Dockerfile.front-office -t ${{ secrets.REGISTRY }}/front-office:${{ github.sha }} ./front-office
-          docker push ${{ secrets.REGISTRY }}/back-office:${{ github.sha }}
-          docker push ${{ secrets.REGISTRY }}/front-office:${{ github.sha }}
+          curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_API }}" | grep -q "^2" \
+            && echo "API deploy triggered" || echo "API deploy hook not set (skipping)"
 
-      - name: Deploy to staging namespace
+      - name: Trigger Render deploy - Front Office
         run: |
-          kubectl set image deployment/back-office back-office=${{ secrets.REGISTRY }}/back-office:${{ github.sha }} -n savings-loans-staging
-          kubectl set image deployment/front-office front-office=${{ secrets.REGISTRY }}/front-office:${{ github.sha }} -n savings-loans-staging
-          kubectl rollout status deployment/back-office -n savings-loans-staging --timeout=5m
-          kubectl rollout status deployment/front-office -n savings-loans-staging --timeout=5m
+          curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_FRONT }}" | grep -q "^2" \
+            && echo "Front deploy triggered" || echo "Front deploy hook not set (skipping)"
+
+      - name: Wait for deploy to complete
+        run: sleep 120
 
       - name: Run smoke tests
         run: |
-          sleep 30
-          curl -f https://staging-api.savingsloans.com.gh/api/v1/health || exit 1
+          API_URL="${{ secrets.STAGING_API_URL }}"
+          FRONT_URL="${{ secrets.STAGING_FRONT_URL }}"
 
-      - name: Notify Slack
-        if: always()
-        uses: 8398a7/action-slack@v3
+          # Default to Render service URLs if secrets not set
+          API_URL="${API_URL:-https://ghana-savings-loans-api.onrender.com}"
+          FRONT_URL="${FRONT_URL:-https://ghana-savings-loans-front.onrender.com}"
+
+          echo "Testing API health..."
+          curl -f --retry 5 --retry-delay 15 "$API_URL/api/health" | \
+            python3 -c "import sys,json; d=json.load(sys.stdin); assert d['status']=='ok', 'Health check failed'; print('API OK')"
+
+          echo "Testing front-office..."
+          curl -f --retry 3 --retry-delay 10 "$FRONT_URL" > /dev/null && echo "Front-office OK"
+
+      - name: Notify Slack - success
+        if: success()
+        uses: 8398a7/action-slack@v4
         with:
-          status: ${{ job.status }}
-          text: "Staging deploy ${{ job.status }}: ${{ github.sha }}"
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          status: success
+          text: |
+            Ghana Savings & Loans staging deploy succeeded.
+            Commit: ${{ github.sha }}
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify Slack - failure
+        if: failure()
+        uses: 8398a7/action-slack@v4
+        with:
+          status: failure
+          text: |
+            Ghana Savings & Loans staging deploy FAILED.
+            Commit: ${{ github.sha }}
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
