@@ -1,4 +1,4 @@
-﻿name: CI - Ghana Savings & Loans
+name: CI - Ghana Savings & Loans
 
 on:
   push:
@@ -24,9 +24,9 @@ jobs:
             shared/package-lock.json
             back-office/package-lock.json
             front-office/package-lock.json
-      - run: cd shared && npm ci
-      - run: cd back-office && npm ci
-      - run: cd front-office && npm ci
+      - run: cd shared && npm ci --legacy-peer-deps
+      - run: cd back-office && npm ci --legacy-peer-deps
+      - run: cd front-office && npm ci --legacy-peer-deps
       - run: cd shared && npm run lint && npm run type-check
       - run: cd back-office && npm run lint && npm run type-check
       - run: cd front-office && npm run lint && npm run type-check
@@ -46,8 +46,8 @@ jobs:
             shared/package-lock.json
             back-office/package-lock.json
             front-office/package-lock.json
-      - run: cd shared && npm ci
-      - run: cd back-office && npm ci
+      - run: cd shared && npm ci --legacy-peer-deps
+      - run: cd back-office && npm ci --legacy-peer-deps
 
       # CRITICAL: These tests MUST pass. Failure blocks all merges.
       - name: "DCD 2025 - Compounding Interest Prohibition Test"
@@ -120,7 +120,7 @@ jobs:
             shared/package-lock.json
             back-office/package-lock.json
             front-office/package-lock.json
-      - run: cd back-office && npm ci
+      - run: cd back-office && npm ci --legacy-peer-deps
       - run: cd back-office && npx prisma migrate deploy
         env:
           DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/sl_test
@@ -150,7 +150,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Dependency audit
-        run: npm audit --audit-level=high --workspaces || true
+        run: npm audit --audit-level=high || true
 
       - name: Secret detection with TruffleHog
         uses: trufflesecurity/trufflehog@main
@@ -182,9 +182,9 @@ jobs:
             shared/package-lock.json
             back-office/package-lock.json
             front-office/package-lock.json
-      - run: cd shared && npm ci && npm run build
-      - run: cd back-office && npm ci && npm run build
-      - run: cd front-office && npm ci && npm run build
+      - run: cd shared && npm ci --legacy-peer-deps && npm run build
+      - run: cd back-office && npm ci --legacy-peer-deps && npm run build
+      - run: cd front-office && npm ci --legacy-peer-deps && npm run build
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
