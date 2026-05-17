@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useRouter } from "next/router";
+import { useAuth } from "../contexts/AuthContext";
 import { CollectionsDashboard } from "../components/CollectionsDashboard";
 import { ComplianceAlerts } from "../components/ComplianceAlerts";
 import { GroupManagement } from "../components/GroupManagement";
@@ -16,9 +18,16 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 ];
 
 export default function FieldOfficerPortal() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("collections");
   const [loanAppId, setLoanAppId] = useState("");
   const [activeLoanId, setActiveLoanId] = useState<string | null>(null);
+
+  const handleLogout = () => {
+    logout();
+    router.replace("/login");
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -28,7 +37,17 @@ export default function FieldOfficerPortal() {
             <span className="text-lg font-bold tracking-tight">Ghana Savings &amp; Loans</span>
             <span className="text-xs bg-white/20 rounded-full px-2 py-0.5 font-medium">Field Portal</span>
           </div>
-          <span className="text-xs text-white/60">BoG Licensed</span>
+          <div className="flex items-center gap-3">
+            {user && (
+              <span className="text-xs text-white/70 hidden sm:block">{user.email}</span>
+            )}
+            <button
+              onClick={handleLogout}
+              className="text-xs bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg px-3 py-1.5 text-white font-medium transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
 
         <div className="max-w-5xl mx-auto px-4 flex overflow-x-auto gap-0.5 scrollbar-hide">

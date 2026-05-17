@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '../contexts/AuthContext';
 
 // ─── Role Definitions ─────────────────────────────────────────────────────────
 
@@ -274,9 +274,33 @@ export interface UseRolePermissionsReturn {
   isManagement: boolean;
 }
 
+// Maps API role strings (e.g. "FIELD_OFFICER") to internal UserRole keys
+function normalizeRole(apiRole: string): UserRole | null {
+  const map: Record<string, UserRole> = {
+    SUPER_ADMIN: 'super_admin', ADMIN: 'super_admin',
+    CEO: 'ceo', CFO: 'cfo',
+    CREDIT_MANAGER: 'credit_manager',
+    LOAN_OFFICER: 'loan_officer',
+    BRANCH_MANAGER: 'branch_manager',
+    FIELD_OFFICER: 'field_agent', FIELD_AGENT: 'field_agent',
+    CUSTOMER_SERVICE: 'customer_service',
+    COMPLIANCE_OFFICER: 'compliance_officer',
+    AML_OFFICER: 'aml_officer',
+    DPO: 'dpo',
+    COLLECTIONS_MANAGER: 'collections_manager',
+    COLLECTIONS_AGENT: 'collections_agent',
+    ACCOUNTANT: 'accountant',
+    AUDITOR: 'auditor',
+    READONLY: 'readonly',
+  };
+  return map[apiRole.toUpperCase()] ?? null;
+}
+
 export function useRolePermissions(): UseRolePermissionsReturn {
-  const { data: session } = useSession();
-  const role = (session?.user as { role?: UserRole })?.role ?? null;
+  const { user } = useAuth();
+  const role = user?.roles?.length
+    ? normalizeRole(user.roles[0])
+    : null;
 
   const permissions = useMemo((): Set<Permission> => {
     if (!role) return new Set();
